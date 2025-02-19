@@ -4,57 +4,26 @@ pipeline {
     environment {
         IMAGE_NAME = "devops-node-api"
         CONTAINER_NAME = "node-app"
-        NODE_VERSION = "22"
+        COMPOSE_FILE = "docker-compose.yml"
     }
 
     stages {
-        stage('Tooling versions') {
-            steps {
-                sh '''
-                    docker --version
-                    docker compose --version
-                    node --version
-                    npm --version
-                '''
-            }
-        }
-        
         stage('Clonar repositório') {
             steps {
                 git branch: 'main', url: 'https://github.com/vagnerwentz/IoTEventsNode.git'
             }
         }
 
-        stage('Instalar Dependências') {
+        stage('Subir Containers com Docker Compose') {
             steps {
-                sh 'npm install'
+                sh 'docker compose down -v'  // Remove containers antigos e volumes
+                sh 'docker compose up -d --build'  // Builda e sobe os containers
             }
         }
 
-        stage('Compilar TypeScript') {
+        stage('Verificar Containers') {
             steps {
-                sh 'npx tsc'
-            }
-        }
-
-        stage('Construir Imagem Docker') {
-            steps {
-                sh 'docker build --platform=linux/amd64 -t ${IMAGE_NAME}:latest .'
-            }
-        }
-
-        stage('Remover container antigo') {
-            steps {
-                sh '''
-                docker stop ${CONTAINER_NAME} || true
-                docker rm ${CONTAINER_NAME} || true
-                '''
-            }
-        }
-
-        stage('Executar Novo Container') {
-            steps {
-                sh 'docker run -d --name ${CONTAINER_NAME} -p 3000:3000 ${IMAGE_NAME}:latest'
+                sh 'docker ps'
             }
         }
     }
