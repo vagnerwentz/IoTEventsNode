@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "devops-springboot-api"
-        CONTAINER_NAME = "springboot-app"
+        IMAGE_NAME = "devops-node-api"
+        CONTAINER_NAME = "node-app"
+        NODE_VERSION = "22"
     }
 
     stages {
@@ -12,20 +13,27 @@ pipeline {
                 sh '''
                     docker --version
                     docker compose --version
+                    node --version
+                    npm --version
                 '''
             }
         }
         
         stage('Clonar repositório') {
             steps {
-                git branch: 'main', url: 'https://github.com/vagnerwentz/SpringBootAgronomia.git'
+                git branch: 'main', url: 'https://github.com/vagnerwentz/IoTEventsNode.git'
             }
         }
 
-        
-        stage('Construir JAR com Maven') {
+        stage('Instalar Dependências') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                sh 'npm install'
+            }
+        }
+
+        stage('Compilar TypeScript') {
+            steps {
+                sh 'npx tsc'
             }
         }
 
@@ -46,7 +54,7 @@ pipeline {
 
         stage('Executar Novo Container') {
             steps {
-                sh 'docker run -d --name ${CONTAINER_NAME} -p 8081:8081 ${IMAGE_NAME}:latest'
+                sh 'docker run -d --name ${CONTAINER_NAME} -p 3000:3000 ${IMAGE_NAME}:latest'
             }
         }
     }
