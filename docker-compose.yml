@@ -1,0 +1,73 @@
+services:
+  nginx:
+    build:
+      dockerfile: ./docker/nginx.dockerfile
+      context: .
+    image: nginx:latest
+    container_name: api-gateway
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - api_spring
+      - api_node
+    networks:
+      - app-network
+  api_node:
+    build:
+      context: .
+    container_name: api-node
+    ports:
+      - "3000:3000"
+    environment:
+      MONGO_URI: mongodb://admin:adminpassword@iot-events-mongodb-container:27017/mydatabase?authSource=admin
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+
+  api_spring:
+    build: ../Agronomia
+    container_name: api-spring
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://ep-divine-mountain-a5ee85fk.us-east-2.aws.neon.tech/neondb?sslmode=require
+      SPRING_DATASOURCE_USERNAME: neondb_owner
+      SPRING_DATASOURCE_PASSWORD: U48dRyYTFfNc
+    networks:
+      - app-network 
+
+  web_agronomia:
+    build:
+      context: ../WebAgronomia
+      dockerfile: Dockerfile
+    container_name: web-agronomia
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+    networks:
+      - app-network
+
+  mongo:
+    image: mongo:6.0
+    container_name: iot-events-mongodb-container
+    ports:
+      - "27017:27017" # Exponha a porta padrão do MongoDB
+    volumes:
+      - mongo-data:/data/db # Persistência de dados
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: adminpassword
+    networks:
+      - app-network
+
+volumes:
+  mongo-data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
